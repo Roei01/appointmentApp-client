@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
-import { View, Text, Alert, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Alert, StyleSheet, TouchableOpacity, TextInput, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StackNavigationProp } from '@react-navigation/stack';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
 import { RootStackParamList } from '../types';
 import { loginUser } from '../services/login';
-import LoginForm from '../components/LoginForm';
+
+WebBrowser.maybeCompleteAuthSession();
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
 
@@ -13,24 +16,45 @@ type Props = {
 };
 
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
-
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  // הגדרת Google Sign-In
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    clientId: '<YOUR_EXPO_CLIENT_ID>',
+    iosClientId: '<YOUR_IOS_CLIENT_ID>',
+    androidClientId: '<YOUR_ANDROID_CLIENT_ID>',
+    webClientId: '<YOUR_WEB_CLIENT_ID>',
+  });
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { authentication } = response;
+      handleGoogleSignIn(authentication.accessToken);
+    }
+  }, [response]);
+
+  const handleGoogleSignIn = async (accessToken: string) => {
+    try {
+      await AsyncStorage.setItem('googleAccessToken', accessToken);
+      Alert.alert('Success', 'Login with Google successful!');
+      navigation.navigate('Home');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to login with Google');
+    }
+  };
+
   const handleLogin = async () => {
-    if (!username || !password) {
-      Alert.alert('Error', 'Please enter both username and password');
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password');
       return;
     }
 
     try {
-      const data = await loginUser(username, password);
-
+      const data = await loginUser(email, password);
       if (data.success) {
         await AsyncStorage.setItem('jwtToken', data.token);
         Alert.alert('Success', 'Login successful!');
-
-        // הפנה את המשתמש לפרופיל לאחר התחברות מוצלחת
         navigation.navigate('Home');
       } else {
         Alert.alert('Error', data.message);
@@ -44,15 +68,50 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome Back!</Text>
-      
-      <LoginForm
-        username={username}
-        password={password}
-        setUsername={setUsername}
-        setPassword={setPassword}
-        handleLogin={handleLogin}
-        styles={styles}
+      <Text style={styles.subtitle}>To get started, sign in to your account.</Text>
+
+      {/* כפתור התחברות עם Google */}
+      <TouchableOpacity
+        style={styles.oauthButton}
+        onPress={() => promptAsync()}
+        disabled={!request}
+      >
+        <Image source={require('../assets/favicon.png')} style={styles.oauthIcon} />
+        <Text style={styles.oauthButtonText}>Sign in with Google</Text>
+      </TouchableOpacity>
+
+      {/* כפתור התחברות עם Apple */}
+      <TouchableOpacity style={styles.oauthButton}>
+        <Image source={require('../assets/favicon.png')} style={styles.oauthIcon} />
+        <Text style={styles.oauthButtonText}>Sign in with Apple</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.dividerText}>Or sign in with</Text>
+
+      <TextInput
+        placeholder="Enter your email"
+        style={styles.input}
+        value={email}
+        onChangeText={setEmail}
+        placeholderTextColor="#aaa"
       />
+
+      <TextInput
+        placeholder="Password"
+        style={styles.input}
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+        placeholderTextColor="#aaa"
+      />
+
+      <TouchableOpacity onPress={() => alert('Forgot Password?')}>
+        <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.signInButton} onPress={handleLogin}>
+        <Text style={styles.signInButtonText}>Sign in</Text>
+      </TouchableOpacity>
 
       <Text style={styles.link} onPress={() => navigation.navigate('SignUp')}>
         Don't have an account? <Text style={styles.linkText}>Sign up</Text>
@@ -66,14 +125,45 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#fff',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#333',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#888',
     marginBottom: 20,
     textAlign: 'center',
+  },
+  oauthButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  oauthIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 10,
+  },
+  oauthButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  dividerText: {
+    fontSize: 14,
+    color: '#aaa',
+    textAlign: 'center',
+    marginVertical: 15,
   },
   input: {
     height: 50,
@@ -86,14 +176,20 @@ const styles = StyleSheet.create({
     color: '#333',
     backgroundColor: '#fff',
   },
-  button: {
-    backgroundColor: '#1E90FF',
+  forgotPasswordText: {
+    fontSize: 14,
+    color: '#1E90FF',
+    textAlign: 'right',
+    marginBottom: 20,
+  },
+  signInButton: {
+    backgroundColor: '#000',
     paddingVertical: 15,
     borderRadius: 8,
     alignItems: 'center',
     marginVertical: 10,
   },
-  buttonText: {
+  signInButtonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',

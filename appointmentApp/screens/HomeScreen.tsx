@@ -1,120 +1,204 @@
-// screens/HomeScreen.tsx
 import React, { useState } from 'react';
-import { View, Text, Button, FlatList, TextInput, StyleSheet } from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { Agenda } from 'react-native-calendars';
+import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList, TextInput } from 'react-native';
 
-type RootStackParamList = {
-  Home: undefined;
-  Profile: undefined;
-};
+const HomeScreen = () => {
+  const [balance, setBalance] = useState(244.0);
 
-type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
+  // רשימת מעקבים
+  const trackingData = [
+    { id: '1', trackingNumber: '#412-639-JTO', from: 'Yogyakarta', to: 'Jakarta (EST)', date: '18 Dec 2023 - 22 Dec 2023', status: 'Transit' },
+    { id: '2', trackingNumber: '#832-091-HQO', from: 'Bali', to: 'Bandung', date: '20 Dec 2023 - 24 Dec 2023', status: 'Created' },
+  ];
 
-type Props = {
-  navigation: HomeScreenNavigationProp;
-};
-
-type Task = {
-  id: string;
-  title: string;
-  description: string;
-  date: string;
-};
-
-type TaskItem = {
-  name: string;
-  description: string;
-};
-
-const HomeScreen: React.FC<Props> = ({ navigation }) => {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [newTask, setNewTask] = useState({ title: '', description: '', date: '' });
-
-  const addTask = () => {
-    if (newTask.title && newTask.date) {
-      const task: Task = {
-        id: Math.random().toString(),
-        title: newTask.title,
-        description: newTask.description,
-        date: newTask.date,
-      };
-      setTasks([...tasks, task]);
-      setNewTask({ title: '', description: '', date: '' });
-    }
-  };
-
-  const renderTask = ({ item }: { item: Task }) => (
-    <View style={styles.taskItem}>
-      <Text style={styles.taskTitle}>{item.title}</Text>
-      <Text>{item.description}</Text>
-      <Text>{item.date}</Text>
+  const renderTrackingItem = ({ item }) => (
+    <View style={styles.trackingCard}>
+      <Text style={styles.trackingNumber}>{item.trackingNumber}</Text>
+      <View style={styles.trackingDetails}>
+        <Text style={styles.trackingStatus}>{item.status}</Text>
+        <Text>{item.from} ➡️ {item.to}</Text>
+        <Text style={styles.trackingDate}>{item.date}</Text>
+      </View>
+      <Image source={require('../assets/Profile.jpg')} style={styles.packageImage} />
     </View>
   );
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Time Management App</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Task Title"
-        value={newTask.title}
-        onChangeText={(text) => setNewTask({ ...newTask, title: text })}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Task Description"
-        value={newTask.description}
-        onChangeText={(text) => setNewTask({ ...newTask, description: text })}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Task Date (YYYY-MM-DD)"
-        value={newTask.date}
-        onChangeText={(text) => setNewTask({ ...newTask, date: text })}
-      />
-      <Button title="Add Task" onPress={addTask} />
+    <View style={styles.container}>
+      {/* תצוגת פרופיל */}
+      <View style={styles.profileSection}>
+        <Image source={require('../assets/Profile.jpg')} style={styles.profileImage} />
+        <View>
+          <Text style={styles.profileName}>Sri Julaekha</Text>
+          <Text style={styles.profileLocation}>Jakarta, ID</Text>
+        </View>
+        <TouchableOpacity style={styles.notificationIcon}>
+          <Image source={require('../assets/Notification.jpg')} style={styles.icon} />
+        </TouchableOpacity>
+      </View>
 
+      {/* תצוגת יתרה */}
+      <View style={styles.balanceSection}>
+        <View style={styles.balanceInfo}>
+          <Text style={styles.balanceLabel}>Your balance</Text>
+          <Text style={styles.balanceAmount}>${balance.toFixed(2)}</Text>
+        </View>
+        <TouchableOpacity style={styles.topUpButton}>
+          <Text style={styles.topUpText}>Top up</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* כפתורים לפעולות */}
+      <View style={styles.actionButtons}>
+        <TouchableOpacity style={styles.actionButton}>
+          <Image source={require('../assets/Profile.jpg')} style={styles.actionIcon} />
+          <Text style={styles.actionButtonText}>New track</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionButton}>
+          <Image source={require('../assets/Profile.jpg')} style={styles.actionIcon} />
+          <Text style={styles.actionButtonText}>Order us</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* חיפוש */}
+      <View style={styles.searchSection}>
+        <TextInput style={styles.searchInput} placeholder="Search" placeholderTextColor="#888" />
+      </View>
+
+      {/* רשימת מעקבים */}
+      <Text style={styles.sectionTitle}>Current tracking</Text>
       <FlatList
-        data={tasks}
-        renderItem={renderTask}
+        data={trackingData}
+        renderItem={renderTrackingItem}
         keyExtractor={(item) => item.id}
-      />
-
-      {/* Calendar View */}
-      <Agenda
-        items={tasks.reduce((acc, task) => {
-          acc[task.date] = [{ name: task.title, description: task.description }];
-          return acc;
-        }, {} as Record<string, TaskItem[]>)}
-        renderItem={(item: TaskItem) => (
-          <View style={styles.taskItem}>
-            <Text style={styles.taskTitle}>{item.name}</Text>
-            <Text>{item.description}</Text>
-          </View>
-        )}
       />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  input: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 10,
-    padding: 10,
-    width: '80%',
+  container: {
+    marginTop: 29,
+    flex: 1,
+    backgroundColor: '#f4f4f4',
+    padding: 20,
   },
-  taskItem: {
-    backgroundColor: '#f9f9f9',
-    padding: 10,
-    marginVertical: 8,
-    borderRadius: 5,
+  profileSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  taskTitle: {
+  profileImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginRight: 15,
+  },
+  profileName: {
+    fontSize: 18,
     fontWeight: 'bold',
+  },
+  profileLocation: {
+    fontSize: 14,
+    color: '#888',
+  },
+  notificationIcon: {
+    marginLeft: 'auto',
+  },
+  icon: {
+    width: 24,
+    height: 24,
+  },
+  balanceSection: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  balanceInfo: {
+    flexDirection: 'column',
+  },
+  balanceLabel: {
+    fontSize: 14,
+    color: '#888',
+  },
+  balanceAmount: {
+    fontSize: 28,
+    fontWeight: 'bold',
+  },
+  topUpButton: {
+    backgroundColor: '#1E90FF',
+    padding: 10,
+    borderRadius: 10,
+  },
+  topUpText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  actionButton: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  actionIcon: {
+    width: 24,
+    height: 24,
+    marginBottom: 5,
+  },
+  actionButtonText: {
+    fontWeight: 'bold',
+  },
+  searchSection: {
+    backgroundColor: '#ececec',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  searchInput: {
+    fontSize: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  trackingCard: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 15,
+    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  trackingNumber: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  trackingDetails: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  trackingStatus: {
+    fontSize: 14,
+    color: '#1E90FF',
+    marginBottom: 5,
+  },
+  trackingDate: {
+    color: '#888',
+  },
+  packageImage: {
+    width: 50,
+    height: 50,
   },
 });
 
